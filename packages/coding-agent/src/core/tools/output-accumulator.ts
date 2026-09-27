@@ -198,8 +198,11 @@ export class OutputAccumulator {
 			return this.tailText;
 		}
 
+		// Drop the cut-off first line, unless it is also the last line; truncateTail then shows its end.
 		const firstNewline = this.tailText.indexOf("\n");
-		return firstNewline === -1 ? this.tailText : this.tailText.slice(firstNewline + 1);
+		return firstNewline === -1 || firstNewline === this.tailText.length - 1
+			? this.tailText
+			: this.tailText.slice(firstNewline + 1);
 	}
 
 	private shouldUseTempFile(): boolean {

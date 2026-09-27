@@ -743,6 +743,28 @@ describe("Coding Agent Tools", () => {
 			expect(output).not.toContain("4001");
 		});
 
+		it("should keep the tail of a single line longer than the rolling buffer when it ends with a newline", async () => {
+			const data = Buffer.from(`${"a".repeat(300_000)}\n`, "utf-8");
+			const operations: BashOperations = {
+				exec: async (_command, _cwd, { onData }) => {
+					for (let i = 0; i < data.length; i += 16_384) {
+						onData(data.subarray(i, i + 16_384));
+					}
+					return { exitCode: 0 };
+				},
+			};
+			const bash = createBashTool(testDir, { operations });
+
+			const result = await bash.execute("test-call-huge-line-trailing-newline", { command: "huge-line" });
+			const output = getTextOutput(result);
+
+			expect(result.details?.truncation?.lastLinePartial).toBe(true);
+			expect(result.details?.truncation?.outputLines).toBe(1);
+			expect(output).not.toContain("(no output)");
+			expect(output).toContain("a".repeat(1000));
+			expect(output).toMatch(/\[Showing last 50\.0KB of line 1 /);
+		});
+
 		it("should decode UTF-8 characters split across output chunks", async () => {
 			const euro = Buffer.from("€\n", "utf-8");
 			const operations: BashOperations = {
